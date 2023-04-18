@@ -4,14 +4,11 @@ import com.ct.models.Options;
 import com.ct.models.Question;
 import com.ct.models.Topic;
 import com.ct.utility.ConnectionUtility;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Answers;
+import org.junit.jupiter.api.*;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -20,6 +17,7 @@ import java.sql.SQLException;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class quizDAOTest {
 
     @Mock
@@ -33,10 +31,11 @@ public class quizDAOTest {
 
     Long id = 1L;
 
+    private AutoCloseable closeable;
 
-    @BeforeEach
+    @BeforeAll
     private void setUp() throws SQLException {
-        MockitoAnnotations.openMocks(this);
+        closeable = MockitoAnnotations.openMocks(this);
         when(mockConnection.prepareStatement(anyString(), anyInt())).thenReturn(mockPreparedStmnt);
         doNothing().when(mockConnection).setAutoCommit(anyBoolean());
         doNothing().when(mockConnection).commit();
@@ -44,13 +43,17 @@ public class quizDAOTest {
         doNothing().when(mockPreparedStmnt).setLong(anyInt(), anyLong());
         when(mockPreparedStmnt.execute()).thenReturn(Boolean.TRUE);
         when(mockPreparedStmnt.getGeneratedKeys()).thenReturn(mockResultSet);
-        when(mockResultSet.next()).thenReturn(Boolean.TRUE, Boolean.FALSE);
         when(mockResultSet.getLong(anyInt())).thenReturn(id);
+    }
+
+    @AfterAll
+    private void close_mocks() throws Exception {
+        closeable.close();
     }
 
     @Test
     void testAddQuestion_positive() throws SQLException {
-
+        when(mockResultSet.next()).thenReturn(Boolean.TRUE, Boolean.FALSE);
         try(MockedStatic<ConnectionUtility> classMock = mockStatic(ConnectionUtility.class)) {
             classMock.when(() -> ConnectionUtility.getConnection()).thenReturn(mockConnection);
             QuizDAOImpl instance = new QuizDAOImpl();
@@ -61,9 +64,21 @@ public class quizDAOTest {
             verify(mockPreparedStmnt, times(4)).setString(anyInt(), anyString());
             verify(mockPreparedStmnt, times(1)).setLong(anyInt(), anyLong());
             verify(mockResultSet, times(1)).next();
-            verify(mockResultSet, times(1)).getInt(1);
+            verify(mockResultSet, times(1)).getLong(1);
         }
 
 
+    }
+
+    @Test
+    void testAddQuestion_negative() throws SQLException {
+        when(mockResultSet.next()).thenReturn(Boolean.FALSE);
+        try(MockedStatic<ConnectionUtility> classMock = mockStatic(ConnectionUtility.class)) {
+            classMock.when(() -> ConnectionUtility.getConnection()).thenReturn(mockConnection);
+            QuizDAOImpl instance = new QuizDAOImpl();
+            Assertions.assertThrows(SQLException.class, () -> {
+                instance.addQuestion(new Question(null, null, null, null, null, null, null, null, null, null));
+            });
+        }
     }
 }

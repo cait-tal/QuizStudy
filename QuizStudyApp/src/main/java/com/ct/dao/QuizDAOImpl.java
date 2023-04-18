@@ -4,17 +4,10 @@ import com.ct.models.Question;
 import com.ct.models.Topic;
 import com.ct.utility.ConnectionUtility;
 
-import javax.sql.DataSource;
 import java.sql.*;
 import java.util.List;
 
 public class QuizDAOImpl implements QuizDAO{
-    public QuizDAOImpl() throws SQLException {
-    }
-
-    // For mocking with tests
-    public QuizDAOImpl(DataSource dataSource) throws SQLException {
-    }
 
     @Override
     public Question addQuestion(Question question) throws SQLException {
@@ -38,11 +31,12 @@ public class QuizDAOImpl implements QuizDAO{
 
             ResultSet rs = pstmt.getGeneratedKeys();
 
-            rs.next();
-
-            System.out.println(rs.getInt(1));
-        }
-        return null;
+            if(rs.next()){
+                question.setId(rs.getLong(1));
+                return question;
+            };
+        } catch (NullPointerException e) {}
+        throw new SQLException("Unable to add question to database at this time.");
     }
 
     @Override
