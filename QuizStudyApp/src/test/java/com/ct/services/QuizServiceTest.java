@@ -2,9 +2,6 @@ package com.ct.services;
 
 import com.ct.dao.QuizDAOImpl;
 import com.ct.exceptions.InvalidQuestionFormatException;
-import com.ct.models.Options;
-import com.ct.models.Question;
-import com.ct.models.Topic;
 import org.junit.jupiter.api.*;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
